@@ -1,8 +1,7 @@
-// 🔧 Firebase SDK
+// Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, set, onValue, update, get, child } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, set, onValue, update, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-// 🔧 Config Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDegjzhVr-EfJhcPYKRYds_P2Y8vROkfYE",
   authDomain: "impostor-game-d149f.firebaseapp.com",
@@ -12,50 +11,45 @@ const firebaseConfig = {
   messagingSenderId: "64487388916",
   appId: "1:64487388916:web:922577f573bd5c989e10a1"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 let playerName, gameCode, playerId, isHost = false;
 
-// schimbă ecranul
+// Utils
 function show(screenId) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(screenId).classList.add('active');
 }
-
-// preia parametru game din URL (dacă există)
 function getGameFromUrl() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get("game");
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get('game');
 }
+window.prefillGameCode = function() {
+  const urlGame = getGameFromUrl();
+  if (urlGame) {
+    document.getElementById("gameCode").value = urlGame;
+  }
+};
 
-// Join / Create Game
+// Join game
 window.joinGame = async function() {
   playerName = document.getElementById("playerName").value.trim();
-  gameCode = document.getElementById("gameCode").value.trim() || getGameFromUrl();
+  gameCode = getGameFromUrl() || document.getElementById("gameCode").value.trim();
 
   if (!playerName) {
     document.getElementById("loginError").innerText = "Introdu un nume!";
     return;
   }
 
+  // Dacă nu există cod => ești host
   if (!gameCode) {
-    // creează un joc nou
     gameCode = Math.random().toString(36).substring(2, 6).toUpperCase();
     isHost = true;
     await set(ref(db, "games/" + gameCode), { players: {} });
-  } else {
-    // verifică dacă jocul există
-    const snap = await get(child(ref(db), "games/" + gameCode));
-    if (!snap.exists()) {
-      document.getElementById("loginError").innerText = "Cod joc invalid!";
-      return;
-    }
   }
 
   playerId = Math.random().toString(36).substring(2, 9);
-
   await set(ref(db, "games/" + gameCode + "/players/" + playerId), {
     name: playerName,
     ready: false,
@@ -63,43 +57,78 @@ window.joinGame = async function() {
   });
 
   document.getElementById("lobbyCode").innerText = gameCode;
-  show("lobby-screen");
 
-  // doar hostul vede butonul start + QR
-  document.getElementById("btnForceStart").style.display = isHost ? "block" : "none";
+  // QR cu link (doar hostul îl vede)
   if (isHost) {
-    const link = "https://snazzy-marigold-d6fa08.netlify.app/?game=" + gameCode;
-    document.getElementById("qrContainer").style.display = "block";
-    document.getElementById("qrcode").innerHTML = "";
-    new QRCode(document.getElementById("qrcode"), { text: link, width: 200, height: 200 });
+    const qr = new QRious({
+      element: document.createElement("canvas"),
+      size: 200,
+      value: `${window.location.origin}${window.location.pathname}?game=${gameCode}`
+    });
+    const qrDiv = document.getElementById("qrCode");
+    qrDiv.innerHTML = "";
+    qrDiv.appendChild(qr.element);
   }
 
+  // Ascund buton start dacă nu sunt host
+  if (!isHost) document.getElementById("startBtn").style.display = "none";
+
+  show("lobby-screen");
   listenLobby();
 };
 
-// Ascultă lobby-ul
+// Lobby listener
 function listenLobby() {
   const playersRef = ref(db, "games/" + gameCode + "/players");
   onValue(playersRef, snapshot => {
     const players = snapshot.val() || {};
     const list = document.getElementById("playersList");
     list.innerHTML = "";
-    let allReady = true;
-    let count = 0;
-
     for (let id in players) {
       const li = document.createElement("li");
       li.innerText = players[id].name + (players[id].ready ? " ✅" : " ⏳");
       list.appendChild(li);
-      count++;
-      if (!players[id].ready) allReady = false;
-    }
-
-    // auto start doar dacă e host
-    if (isHost && count >= 4 && allReady) {
-      startGame(players);
     }
   });
 }
 
-// Marchează jucător ca ready
+// Ready
+window.setReady = function() {
+  update(ref(db, "games/" + gameCode + "/players/" + playerId), { ready: true });
+};
+
+// Host start
+window.forceStart = async function() {
+  if (!isHost) return;
+  const snap = await get(ref(db, "games/" + gameCode + "/players"));
+  const players = snap.val() || {};
+  startGame(players);
+};
+
+// Game start
+function startGame(players) {
+  const ids = Object.keys(players);
+  const impostorId = ids[Math.floor(Math.random() * ids.length)];
+  const pair = wordPairs[Math.floor(Math.random() * wordPairs.length)];
+
+  ids.forEach(id => {
+    let word = (id === impostorId) ? pair[1] : pair[0];
+    update(ref(db, "games/" + gameCode + "/players/" + id), { word, impostor: id === impostorId });
+  });
+
+  show("game-screen");
+
+  onValue(ref(db, "games/" + gameCode + "/players/" + playerId), snap => {
+    const me = snap.val();
+    if (!me) return;
+    document.getElementById("yourWord").innerText = me.word;
+    document.getElementById("roleTitle").innerText =
+      me.impostor ? "Tu ești impostorul 👀" : "Cuvântul tău";
+  });
+}
+
+// Next game
+window.nextGame = function() {
+  update(ref(db, "games/" + gameCode + "/players/" + playerId), { ready: false, word: "", impostor: false });
+  show("lobby-screen");
+};
