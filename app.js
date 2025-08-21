@@ -26,7 +26,7 @@ function show(screenId) {
 }
 
 // 🔧 Join sau Create Game
-window.joinGame = function() {
+async function joinGame() {
   playerName = document.getElementById("playerName").value.trim();
   gameCode = document.getElementById("gameCode").value.trim();
 
@@ -38,12 +38,12 @@ window.joinGame = function() {
   if (!gameCode) {
     // Creează joc nou
     gameCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-    set(ref(db, "games/" + gameCode), { players: {}, phase: "lobby" });
+    await set(ref(db, "games/" + gameCode), { players: {}, phase: "lobby" });
   }
 
   playerId = Math.random().toString(36).substring(2, 9);
 
-  set(ref(db, "games/" + gameCode + "/players/" + playerId), {
+  await set(ref(db, "games/" + gameCode + "/players/" + playerId), {
     name: playerName,
     ready: false,
     word: ""
@@ -54,7 +54,7 @@ window.joinGame = function() {
 
   listenLobby();
   listenPhase();
-};
+}
 
 // 🔧 Ascultă lobby
 function listenLobby() {
@@ -88,6 +88,53 @@ function listenPhase() {
     const phase = snap.val();
     if (phase === "started") {
       show("game-screen");
-      // ascultă cuvântul propriu
       onValue(ref(db, "games/" + gameCode + "/players/" + playerId + "/word"), s => {
         const w = s.val();
+        if (w) document.getElementById("yourWord").innerText = w;
+      });
+    } else if (phase === "lobby") {
+      show("lobby-screen");
+    }
+  });
+}
+
+// 🔧 Marchează jucător ca ready
+function setReady() {
+  update(ref(db, "games/" + gameCode + "/players/" + playerId), { ready: true });
+}
+
+// 🔧 Start game
+function startGame(players) {
+  const ids = Object.keys(players);
+  if (ids.length === 0) return;
+
+  const impostorId = ids[Math.floor(Math.random() * ids.length)];
+  const pair = wordPairs[Math.floor(Math.random() * wordPairs.length)];
+
+  ids.forEach(id => {
+    const word = (id === impostorId) ? pair[1] : pair[0];
+    update(ref(db, "games/" + gameCode + "/players/" + id), { word });
+  });
+
+  update(ref(db, "games/" + gameCode), { phase: "started", lastRoundAt: Date.now() });
+}
+
+// 🔧 Next game → înapoi în lobby
+async function nextGame() {
+  await update(ref(db, "games/" + gameCode + "/players/" + playerId), { ready: false, word: "" });
+  await update(ref(db, "games/" + gameCode), { phase: "lobby" });
+}
+
+// 🔧 Force start (host)
+async function forceStart() {
+  const playersRef = ref(db, "games/" + gameCode + "/players");
+  const snap = await get(playersRef);
+  const players = snap.val() || {};
+  startGame(players);
+}
+
+// 🔧 Legăm butoanele din HTML
+document.getElementById("btnJoin").addEventListener("click", joinGame);
+document.getElementById("btnReady").addEventListener("click", setReady);
+document.getElementById("btnNextGame").addEventListener("click", nextGame);
+document.getElementById("btnForceStart").addEventListener("click", forceStart);
