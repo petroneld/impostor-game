@@ -13,12 +13,13 @@ const firebaseConfig = {
   appId: "1:64487388916:web:922577f573bd5c989e10a1"
 };
 
-// Inițializează app + DB
+// Inițializează Firebase
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 let playerName, gameCode, playerId;
 
+// Funcție pentru schimbarea ecranelor
 function show(screenId) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(screenId).classList.add('active');
@@ -35,6 +36,7 @@ window.joinGame = function() {
   }
 
   if (!gameCode) {
+    // Creează un cod random de joc
     gameCode = Math.random().toString(36).substring(2, 6).toUpperCase();
     set(ref(db, "games/" + gameCode), { players: {} });
   }
@@ -53,7 +55,7 @@ window.joinGame = function() {
   listenLobby();
 };
 
-// Ascultă lobby
+// Ascultă lobby-ul
 function listenLobby() {
   const playersRef = ref(db, "games/" + gameCode + "/players");
   onValue(playersRef, snapshot => {
@@ -71,13 +73,14 @@ function listenLobby() {
       if (!players[id].ready) allReady = false;
     }
 
+    // Dacă sunt >= 4 și toți ready -> start
     if (count >= 4 && allReady) {
       startGame(players);
     }
   });
 }
 
-// Set ready
+// Marchează jucător ca ready
 window.setReady = function() {
   update(ref(db, "games/" + gameCode + "/players/" + playerId), { ready: true });
 };
@@ -95,15 +98,15 @@ function startGame(players) {
   });
 
   show("game-screen");
+
   onValue(ref(db, "games/" + gameCode + "/players/" + playerId + "/word"), snap => {
     document.getElementById("yourWord").innerText = snap.val();
   });
 }
 
-// Next game
+// Next game -> reset ready
 window.nextGame = function() {
   update(ref(db, "games/" + gameCode + "/players/" + playerId), { ready: false, word: "" });
   show("lobby-screen");
 }
-
 
