@@ -26,7 +26,7 @@ function show(screenId) {
 }
 
 // 🔧 Join sau Create Game
-async function joinGame() {
+function joinGame() {
   playerName = document.getElementById("playerName").value.trim();
   gameCode = document.getElementById("gameCode").value.trim();
 
@@ -38,12 +38,12 @@ async function joinGame() {
   if (!gameCode) {
     // Creează joc nou
     gameCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-    await set(ref(db, "games/" + gameCode), { players: {}, phase: "lobby" });
+    set(ref(db, "games/" + gameCode), { players: {}, phase: "lobby" });
   }
 
   playerId = Math.random().toString(36).substring(2, 9);
 
-  await set(ref(db, "games/" + gameCode + "/players/" + playerId), {
+  set(ref(db, "games/" + gameCode + "/players/" + playerId), {
     name: playerName,
     ready: false,
     word: ""
@@ -133,8 +133,8 @@ async function forceStart() {
   startGame(players);
 }
 
-// 🔧 Legăm butoanele din HTML
-document.getElementById("btnJoin").addEventListener("click", joinGame);
-document.getElementById("btnReady").addEventListener("click", setReady);
-document.getElementById("btnNextGame").addEventListener("click", nextGame);
-document.getElementById("btnForceStart").addEventListener("click", forceStart);
+// 👇 Expunem funcțiile pe window pentru a putea fi apelate din HTML (onclick)
+window.joinGame = joinGame;
+window.setReady = setReady;
+window.nextGame = nextGame;
+window.forceStart = forceStart;
