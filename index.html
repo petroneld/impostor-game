@@ -8,7 +8,7 @@
   <script defer src="words.js"></script>
   <script type="module" src="app.js"></script>
 </head>
-<body>
+<body onload="prefillGameCode()">
   <!-- Login screen -->
   <div id="login-screen" class="screen active">
     <h1>Impostor Game 🎭</h1>
@@ -22,15 +22,10 @@
   <div id="lobby-screen" class="screen">
     <h2>Lobby</h2>
     <p>Cod joc: <span id="lobbyCode"></span></p>
+    <div id="qrCode"></div>
     <ul id="playersList"></ul>
-    <button onclick="setReady()">Ready</button>
-    <button id="btnForceStart" onclick="forceStart()">Start Game (Host)</button>
-
-    <!-- QR pentru host -->
-    <div id="qrContainer" style="margin-top:20px; display:none;">
-      <h3>Scanează pentru a intra 👇</h3>
-      <div id="qrcode"></div>
-    </div>
+    <button id="readyBtn" onclick="setReady()">Ready</button>
+    <button id="startBtn" onclick="forceStart()">Start Game (Host)</button>
   </div>
 
   <!-- Game screen -->
@@ -40,7 +35,7 @@
     <button onclick="nextGame()">Next Game</button>
   </div>
 
-  <!-- librăria QR -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- QR Lib -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 </body>
 </html>
