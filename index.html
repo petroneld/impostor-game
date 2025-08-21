@@ -25,13 +25,22 @@
     <ul id="playersList"></ul>
     <button onclick="setReady()">Ready</button>
     <button id="btnForceStart" onclick="forceStart()">Start Game (Host)</button>
+
+    <!-- QR pentru host -->
+    <div id="qrContainer" style="margin-top:20px; display:none;">
+      <h3>Scanează pentru a intra 👇</h3>
+      <div id="qrcode"></div>
+    </div>
   </div>
 
   <!-- Game screen -->
   <div id="game-screen" class="screen">
-    <h2>Cuvântul tău</h2>
+    <h2 id="roleTitle">Cuvântul tău</h2>
     <p id="yourWord"></p>
     <button onclick="nextGame()">Next Game</button>
   </div>
+
+  <!-- librăria QR -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </body>
 </html>
