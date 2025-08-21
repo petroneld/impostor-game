@@ -1,4 +1,4 @@
-// Firebase
+// Firebase imports...
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, set, onValue, update, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
@@ -42,23 +42,23 @@ window.joinGame = async function() {
     return;
   }
 
-  // Dacă nu există cod => ești host
   if (!gameCode) {
     gameCode = Math.random().toString(36).substring(2, 6).toUpperCase();
     isHost = true;
-    await set(ref(db, "games/" + gameCode), { players: {} });
+    await set(ref(db, "games/" + gameCode), { players: {}, status: "lobby" });
   }
 
   playerId = Math.random().toString(36).substring(2, 9);
   await set(ref(db, "games/" + gameCode + "/players/" + playerId), {
     name: playerName,
     ready: false,
-    word: ""
+    word: "",
+    impostor: false
   });
 
   document.getElementById("lobbyCode").innerText = gameCode;
 
-  // QR cu link (doar hostul îl vede)
+  // QR pentru host
   if (isHost) {
     const qr = new QRious({
       element: document.createElement("canvas"),
@@ -70,11 +70,11 @@ window.joinGame = async function() {
     qrDiv.appendChild(qr.element);
   }
 
-  // Ascund buton start dacă nu sunt host
   if (!isHost) document.getElementById("startBtn").style.display = "none";
 
   show("lobby-screen");
   listenLobby();
+  listenGameStatus();
 };
 
 // Lobby listener
@@ -92,6 +92,24 @@ function listenLobby() {
   });
 }
 
+// Game status listener
+function listenGameStatus() {
+  const statusRef = ref(db, "games/" + gameCode + "/status");
+  onValue(statusRef, snap => {
+    if (snap.val() === "started") {
+      show("game-screen");
+      // ascultă propriul cuvânt
+      onValue(ref(db, "games/" + gameCode + "/players/" + playerId), snap2 => {
+        const me = snap2.val();
+        if (!me) return;
+        document.getElementById("yourWord").innerText = me.word;
+        document.getElementById("roleTitle").innerText =
+          me.impostor ? "Tu ești impostorul 👀" : "Cuvântul tău";
+      });
+    }
+  });
+}
+
 // Ready
 window.setReady = function() {
   update(ref(db, "games/" + gameCode + "/players/" + playerId), { ready: true });
@@ -105,7 +123,7 @@ window.forceStart = async function() {
   startGame(players);
 };
 
-// Game start
+// Start game logic
 function startGame(players) {
   const ids = Object.keys(players);
   const impostorId = ids[Math.floor(Math.random() * ids.length)];
@@ -116,19 +134,12 @@ function startGame(players) {
     update(ref(db, "games/" + gameCode + "/players/" + id), { word, impostor: id === impostorId });
   });
 
-  show("game-screen");
-
-  onValue(ref(db, "games/" + gameCode + "/players/" + playerId), snap => {
-    const me = snap.val();
-    if (!me) return;
-    document.getElementById("yourWord").innerText = me.word;
-    document.getElementById("roleTitle").innerText =
-      me.impostor ? "Tu ești impostorul 👀" : "Cuvântul tău";
-  });
+  update(ref(db, "games/" + gameCode), { status: "started" });
 }
 
 // Next game
 window.nextGame = function() {
   update(ref(db, "games/" + gameCode + "/players/" + playerId), { ready: false, word: "", impostor: false });
+  update(ref(db, "games/" + gameCode), { status: "lobby" });
   show("lobby-screen");
 };
