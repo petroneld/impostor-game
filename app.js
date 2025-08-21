@@ -1,6 +1,6 @@
 // 🔧 Firebase SDK
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, set, onValue, update, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, set, onValue, update, get, child } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 // 🔧 Config Firebase
 const firebaseConfig = {
@@ -13,39 +13,48 @@ const firebaseConfig = {
   appId: "1:64487388916:web:922577f573bd5c989e10a1"
 };
 
-// Inițializează Firebase
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-let playerName, gameCode, playerId;
+let playerName, gameCode, playerId, isHost = false;
 
-// 🔧 Schimbare ecran
+// schimbă ecranul
 function show(screenId) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(screenId).classList.add('active');
 }
 
-// 🔧 Join sau Create Game
-async function joinGame() {
+// preia parametru game din URL (dacă există)
+function getGameFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("game");
+}
+
+// Join / Create Game
+window.joinGame = async function() {
   playerName = document.getElementById("playerName").value.trim();
-  gameCode = document.getElementById("gameCode").value.trim();
+  gameCode = document.getElementById("gameCode").value.trim() || getGameFromUrl();
 
   if (!playerName) {
     document.getElementById("loginError").innerText = "Introdu un nume!";
     return;
   }
 
-  playerId = Math.random().toString(36).substring(2, 9);
-
   if (!gameCode) {
-    // Creează joc nou → tu devii host
+    // creează un joc nou
     gameCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-    await set(ref(db, "games/" + gameCode), { 
-      players: {}, 
-      phase: "lobby", 
-      hostId: playerId 
-    });
+    isHost = true;
+    await set(ref(db, "games/" + gameCode), { players: {} });
+  } else {
+    // verifică dacă jocul există
+    const snap = await get(child(ref(db), "games/" + gameCode));
+    if (!snap.exists()) {
+      document.getElementById("loginError").innerText = "Cod joc invalid!";
+      return;
+    }
   }
+
+  playerId = Math.random().toString(36).substring(2, 9);
 
   await set(ref(db, "games/" + gameCode + "/players/" + playerId), {
     name: playerName,
@@ -56,11 +65,19 @@ async function joinGame() {
   document.getElementById("lobbyCode").innerText = gameCode;
   show("lobby-screen");
 
-  listenLobby();
-  listenPhase();
-}
+  // doar hostul vede butonul start + QR
+  document.getElementById("btnForceStart").style.display = isHost ? "block" : "none";
+  if (isHost) {
+    const link = "https://snazzy-marigold-d6fa08.netlify.app/?game=" + gameCode;
+    document.getElementById("qrContainer").style.display = "block";
+    document.getElementById("qrcode").innerHTML = "";
+    new QRCode(document.getElementById("qrcode"), { text: link, width: 200, height: 200 });
+  }
 
-// 🔧 Ascultă lobby
+  listenLobby();
+};
+
+// Ascultă lobby-ul
 function listenLobby() {
   const playersRef = ref(db, "games/" + gameCode + "/players");
   onValue(playersRef, snapshot => {
@@ -78,99 +95,11 @@ function listenLobby() {
       if (!players[id].ready) allReady = false;
     }
 
-    // Auto-start dacă sunt >=4 și toți ready
-    if (count >= 4 && allReady) {
+    // auto start doar dacă e host
+    if (isHost && count >= 4 && allReady) {
       startGame(players);
     }
   });
 }
 
-// 🔧 Ascultă faza jocului
-function listenPhase() {
-  const gameRef = ref(db, "games/" + gameCode);
-  onValue(gameRef, snap => {
-    const game = snap.val();
-    if (!game) return;
-    const phase = game.phase;
-
-    // buton Start vizibil doar pentru host
-    const btnForce = document.getElementById("btnForceStart");
-    if (game.hostId === playerId) {
-      btnForce.style.display = "block";
-    } else {
-      btnForce.style.display = "none";
-    }
-
-    if (phase === "started") {
-      show("game-screen");
-      onValue(ref(db, "games/" + gameCode + "/players/" + playerId + "/word"), s => {
-        const w = s.val();
-        if (w) {
-          const header = document.querySelector("#game-screen h2");
-
-          // verificăm dacă jucătorul e impostor (are al doilea cuvânt din pereche)
-          const pair = wordPairs.find(p => p.includes(w));
-          if (pair && pair[1] === w) {
-            header.innerText = "Tu ești IMPOSTORUL 👀";
-          } else {
-            header.innerText = "Cuvântul tău";
-          }
-
-          document.getElementById("yourWord").innerText = w;
-        }
-      });
-    } else if (phase === "lobby") {
-      show("lobby-screen");
-    }
-  });
-}
-
-// 🔧 Marchează jucător ca ready
-function setReady() {
-  update(ref(db, "games/" + gameCode + "/players/" + playerId), { ready: true });
-}
-
-// 🔧 Start game
-function startGame(players) {
-  const ids = Object.keys(players);
-  if (ids.length === 0) return;
-
-  const impostorId = ids[Math.floor(Math.random() * ids.length)];
-  const pair = wordPairs[Math.floor(Math.random() * wordPairs.length)];
-
-  ids.forEach(id => {
-    const word = (id === impostorId) ? pair[1] : pair[0];
-    update(ref(db, "games/" + gameCode + "/players/" + id), { word });
-  });
-
-  update(ref(db, "games/" + gameCode), { phase: "started", lastRoundAt: Date.now() });
-}
-
-// 🔧 Next game → înapoi în lobby
-async function nextGame() {
-  await update(ref(db, "games/" + gameCode + "/players/" + playerId), { ready: false, word: "" });
-  await update(ref(db, "games/" + gameCode), { phase: "lobby" });
-}
-
-// 🔧 Force start (doar host)
-async function forceStart() {
-  const gameRef = ref(db, "games/" + gameCode);
-  const snap = await get(gameRef);
-  const gameData = snap.val();
-
-  if (gameData.hostId !== playerId) {
-    alert("Doar hostul poate porni jocul!");
-    return;
-  }
-
-  const playersRef = ref(db, "games/" + gameCode + "/players");
-  const playersSnap = await get(playersRef);
-  const players = playersSnap.val() || {};
-  startGame(players);
-}
-
-// 👇 Expunem funcțiile pentru HTML (onclick)
-window.joinGame = joinGame;
-window.setReady = setReady;
-window.nextGame = nextGame;
-window.forceStart = forceStart;
+// Marchează jucător ca ready
