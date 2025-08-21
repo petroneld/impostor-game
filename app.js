@@ -6,7 +6,7 @@ import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/
 const firebaseConfig = {
   apiKey: "AIzaSyDegjzhVr-EfJhcPYKRYds_P2Y8vROkfYE",
   authDomain: "impostor-game-d149f.firebaseapp.com",
-  databaseURL: "https://impostor-game-d149f-default-rtdb.europe-west1.firebasedatabase.app", // vezi exact URL-ul în Firebase Console
+  databaseURL: "https://impostor-game-d149f-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "impostor-game-d149f",
   storageBucket: "impostor-game-d149f.appspot.com",
   messagingSenderId: "64487388916",
@@ -109,4 +109,5 @@ window.nextGame = function() {
   update(ref(db, "games/" + gameCode + "/players/" + playerId), { ready: false, word: "" });
   show("lobby-screen");
 }
+
 
