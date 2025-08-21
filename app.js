@@ -26,7 +26,7 @@ function show(screenId) {
 }
 
 // 🔧 Join sau Create Game
-function joinGame() {
+async function joinGame() {
   playerName = document.getElementById("playerName").value.trim();
   gameCode = document.getElementById("gameCode").value.trim();
 
@@ -35,15 +35,19 @@ function joinGame() {
     return;
   }
 
-  if (!gameCode) {
-    // Creează joc nou
-    gameCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-    set(ref(db, "games/" + gameCode), { players: {}, phase: "lobby" });
-  }
-
   playerId = Math.random().toString(36).substring(2, 9);
 
-  set(ref(db, "games/" + gameCode + "/players/" + playerId), {
+  if (!gameCode) {
+    // Creează joc nou → tu devii host
+    gameCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+    await set(ref(db, "games/" + gameCode), { 
+      players: {}, 
+      phase: "lobby", 
+      hostId: playerId 
+    });
+  }
+
+  await set(ref(db, "games/" + gameCode + "/players/" + playerId), {
     name: playerName,
     ready: false,
     word: ""
@@ -83,14 +87,37 @@ function listenLobby() {
 
 // 🔧 Ascultă faza jocului
 function listenPhase() {
-  const phaseRef = ref(db, "games/" + gameCode + "/phase");
-  onValue(phaseRef, snap => {
-    const phase = snap.val();
+  const gameRef = ref(db, "games/" + gameCode);
+  onValue(gameRef, snap => {
+    const game = snap.val();
+    if (!game) return;
+    const phase = game.phase;
+
+    // buton Start vizibil doar pentru host
+    const btnForce = document.getElementById("btnForceStart");
+    if (game.hostId === playerId) {
+      btnForce.style.display = "block";
+    } else {
+      btnForce.style.display = "none";
+    }
+
     if (phase === "started") {
       show("game-screen");
       onValue(ref(db, "games/" + gameCode + "/players/" + playerId + "/word"), s => {
         const w = s.val();
-        if (w) document.getElementById("yourWord").innerText = w;
+        if (w) {
+          const header = document.querySelector("#game-screen h2");
+
+          // verificăm dacă jucătorul e impostor (are al doilea cuvânt din pereche)
+          const pair = wordPairs.find(p => p.includes(w));
+          if (pair && pair[1] === w) {
+            header.innerText = "Tu ești IMPOSTORUL 👀";
+          } else {
+            header.innerText = "Cuvântul tău";
+          }
+
+          document.getElementById("yourWord").innerText = w;
+        }
       });
     } else if (phase === "lobby") {
       show("lobby-screen");
@@ -125,15 +152,24 @@ async function nextGame() {
   await update(ref(db, "games/" + gameCode), { phase: "lobby" });
 }
 
-// 🔧 Force start (host)
+// 🔧 Force start (doar host)
 async function forceStart() {
+  const gameRef = ref(db, "games/" + gameCode);
+  const snap = await get(gameRef);
+  const gameData = snap.val();
+
+  if (gameData.hostId !== playerId) {
+    alert("Doar hostul poate porni jocul!");
+    return;
+  }
+
   const playersRef = ref(db, "games/" + gameCode + "/players");
-  const snap = await get(playersRef);
-  const players = snap.val() || {};
+  const playersSnap = await get(playersRef);
+  const players = playersSnap.val() || {};
   startGame(players);
 }
 
-// 👇 Expunem funcțiile pe window pentru a putea fi apelate din HTML (onclick)
+// 👇 Expunem funcțiile pentru HTML (onclick)
 window.joinGame = joinGame;
 window.setReady = setReady;
 window.nextGame = nextGame;
