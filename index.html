@@ -14,7 +14,7 @@
     <h1>Impostor Game 🎭</h1>
     <input id="playerName" placeholder="Numele tău">
     <input id="gameCode" placeholder="Cod joc (sau lasă gol pentru nou)">
-    <button id="btnJoin">Join Game</button>
+    <button onclick="joinGame()">Join Game</button>
     <p id="loginError"></p>
   </div>
 
@@ -23,15 +23,15 @@
     <h2>Lobby</h2>
     <p>Cod joc: <span id="lobbyCode"></span></p>
     <ul id="playersList"></ul>
-    <button id="btnReady">Ready</button>
-    <button id="btnForceStart">Start Game (Host)</button>
+    <button onclick="setReady()">Ready</button>
+    <button onclick="forceStart()">Start Game (Host)</button>
   </div>
 
   <!-- Game screen -->
   <div id="game-screen" class="screen">
     <h2>Cuvântul tău</h2>
     <p id="yourWord"></p>
-    <button id="btnNextGame">Next Game</button>
+    <button onclick="nextGame()">Next Game</button>
   </div>
 </body>
 </html>
