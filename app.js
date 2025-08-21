@@ -1,8 +1,8 @@
-// 🔧 Firebase SDK (trebuie să-ți faci proiect pe console.firebase.google.com)
+// 🔧 Firebase SDK
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, set, onValue, update, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-// 🔧 Config Firebase - COPIAT din consola ta
+// 🔧 Config Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDegjzhVr-EfJhcPYKRYds_P2Y8vROkfYE",
   authDomain: "impostor-game-d149f.firebaseapp.com",
@@ -19,13 +19,13 @@ const db = getDatabase(app);
 
 let playerName, gameCode, playerId;
 
-// Funcție pentru schimbarea ecranelor
+// 🔧 Schimbare ecran
 function show(screenId) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(screenId).classList.add('active');
 }
 
-// Join / Create Game
+// 🔧 Join sau Create Game
 window.joinGame = function() {
   playerName = document.getElementById("playerName").value.trim();
   gameCode = document.getElementById("gameCode").value.trim();
@@ -36,9 +36,9 @@ window.joinGame = function() {
   }
 
   if (!gameCode) {
-    // Creează un cod random de joc
+    // Creează joc nou
     gameCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-    set(ref(db, "games/" + gameCode), { players: {} });
+    set(ref(db, "games/" + gameCode), { players: {}, phase: "lobby" });
   }
 
   playerId = Math.random().toString(36).substring(2, 9);
@@ -53,9 +53,10 @@ window.joinGame = function() {
   show("lobby-screen");
 
   listenLobby();
+  listenPhase();
 };
 
-// Ascultă lobby-ul
+// 🔧 Ascultă lobby
 function listenLobby() {
   const playersRef = ref(db, "games/" + gameCode + "/players");
   onValue(playersRef, snapshot => {
@@ -73,50 +74,20 @@ function listenLobby() {
       if (!players[id].ready) allReady = false;
     }
 
-    // Dacă sunt >= 4 și toți ready -> start
+    // Auto-start dacă sunt >=4 și toți ready
     if (count >= 4 && allReady) {
       startGame(players);
     }
   });
 }
 
-// Marchează jucător ca ready
-window.setReady = function() {
-  update(ref(db, "games/" + gameCode + "/players/" + playerId), { ready: true });
-};
-
-// Start game
-function startGame(players) {
-  const ids = Object.keys(players);
-  const impostorId = ids[Math.floor(Math.random() * ids.length)];
-
-  const pair = wordPairs[Math.floor(Math.random() * wordPairs.length)];
-
-  ids.forEach(id => {
-    let word = (id === impostorId) ? pair[1] : pair[0];
-    update(ref(db, "games/" + gameCode + "/players/" + id), { word });
-  });
-
-  show("game-screen");
-
-  onValue(ref(db, "games/" + gameCode + "/players/" + playerId + "/word"), snap => {
-    document.getElementById("yourWord").innerText = snap.val();
-  });
-}
-
-// Next game -> reset ready
-window.nextGame = function() {
-  update(ref(db, "games/" + gameCode + "/players/" + playerId), { ready: false, word: "" });
-  show("lobby-screen");
-}
-
-// Force start (pentru testare sau când ai mai puțin de 4 jucători)
-window.forceStart = function() {
-  const playersRef = ref(db, "games/" + gameCode + "/players");
-  onValue(playersRef, snapshot => {
-    const players = snapshot.val() || {};
-    startGame(players);
-  }, { onlyOnce: true });
-};
-
-
+// 🔧 Ascultă faza jocului
+function listenPhase() {
+  const phaseRef = ref(db, "games/" + gameCode + "/phase");
+  onValue(phaseRef, snap => {
+    const phase = snap.val();
+    if (phase === "started") {
+      show("game-screen");
+      // ascultă cuvântul propriu
+      onValue(ref(db, "games/" + gameCode + "/players/" + playerId + "/word"), s => {
+        const w = s.val();
