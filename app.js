@@ -110,5 +110,13 @@ window.nextGame = function() {
   show("lobby-screen");
 }
 
+// Force start (pentru testare sau când ai mai puțin de 4 jucători)
+window.forceStart = function() {
+  const playersRef = ref(db, "games/" + gameCode + "/players");
+  onValue(playersRef, snapshot => {
+    const players = snapshot.val() || {};
+    startGame(players);
+  }, { onlyOnce: true });
+};
 
 
