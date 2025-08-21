@@ -1,17 +1,19 @@
 // 🔧 Firebase SDK (trebuie să-ți faci proiect pe console.firebase.google.com)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, set, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-// TODO: înlocuiește cu datele tale Firebase
-    const firebaseConfig = {
-        apiKey: "AIzaSyDegjzhVr-EfJhcPYKRYds_P2Y8vROkfYE",
-        authDomain: "impostor-game-d149f.firebaseapp.com",
-        projectId: "impostor-game-d149f",
-        storageBucket: "impostor-game-d149f.firebasestorage.app",
-        messagingSenderId: "64487388916",
-        appId: "1:64487388916:web:922577f573bd5c989e10a1"
-      };
+// 🔧 Config Firebase - COPIAT din consola ta
+const firebaseConfig = {
+  apiKey: "AIzaSyDegjzhVr-EfJhcPYKRYds_P2Y8vROkfYE",
+  authDomain: "impostor-game-d149f.firebaseapp.com",
+  databaseURL: "https://impostor-game-d149f-default-rtdb.europe-west1.firebasedatabase.app", // vezi exact URL-ul în Firebase Console
+  projectId: "impostor-game-d149f",
+  storageBucket: "impostor-game-d149f.appspot.com",
+  messagingSenderId: "64487388916",
+  appId: "1:64487388916:web:922577f573bd5c989e10a1"
+};
 
+// Inițializează app + DB
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
@@ -103,4 +105,5 @@ window.nextGame = function() {
   update(ref(db, "games/" + gameCode + "/players/" + playerId), { ready: false, word: "" });
   show("lobby-screen");
 }
+
 
