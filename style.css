@@ -1,0 +1,104 @@
+/* Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  html, body {
+    height: 100%;
+    width: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #111;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  
+  /* Ecrane */
+  .screen {
+    width: 100%;
+    max-width: 600px;
+    height: 100%;
+    padding: 2rem;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .screen.active {
+    display: flex;
+  }
+  
+  /* Titluri */
+  h1, h2 {
+    margin-bottom: 2rem;
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
+  }
+  
+  /* Inputuri */
+  input {
+    width: 100%;
+    padding: 1rem;
+    margin: 0.5rem 0;
+    font-size: 1.1rem;
+    border: none;
+    border-radius: 12px;
+    outline: none;
+    background: #222;
+    color: #fff;
+  }
+  
+  /* Butoane */
+  button {
+    width: 100%;
+    padding: 1.2rem;
+    margin-top: 1rem;
+    font-size: 1.2rem;
+    font-weight: bold;
+    background: #ff3b30;
+    border: none;
+    border-radius: 12px;
+    color: white;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  
+  button:hover, button:active {
+    background: #ff5e57;
+  }
+  
+  /* Lista jucători */
+  #playersList {
+    list-style: none;
+    width: 100%;
+    padding: 0;
+  }
+  
+  #playersList li {
+    padding: 0.8rem;
+    margin: 0.3rem 0;
+    background: #222;
+    border-radius: 10px;
+    font-size: 1.1rem;
+  }
+  
+  /* Cuvânt */
+  #yourWord {
+    font-size: clamp(1.5rem, 6vw, 2.2rem);
+    font-weight: bold;
+    background: #222;
+    padding: 1.5rem;
+    border-radius: 15px;
+    margin-bottom: 2rem;
+  }
+  
+  /* Safe area pentru notch */
+  body {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) 
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  

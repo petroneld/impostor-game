@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <title>Impostor Game 🎭</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <link rel="stylesheet" href="style.css">
+  <script defer src="words.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <!-- Login screen -->
+  <div id="login-screen" class="screen active">
+    <h1>Impostor Game 🎭</h1>
+    <input id="playerName" placeholder="Numele tău">
+    <input id="gameCode" placeholder="Cod joc (sau lasă gol pentru nou)">
+    <button onclick="joinGame()">Join Game</button>
+    <p id="loginError"></p>
+  </div>
+
+  <!-- Lobby screen -->
+  <div id="lobby-screen" class="screen">
+    <h2>Lobby</h2>
+    <p>Cod joc: <span id="lobbyCode"></span></p>
+    <ul id="playersList"></ul>
+    <button onclick="setReady()">Ready</button>
+  </div>
+
+  <!-- Game screen -->
+  <div id="game-screen" class="screen">
+    <h2>Cuvântul tău</h2>
+    <p id="yourWord"></p>
+    <button onclick="nextGame()">Next Game</button>
+  </div>
+</body>
+</html>
