@@ -3,7 +3,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getDatabase, ref, set, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 // TODO: înlocuiește cu datele tale Firebase
-const firebaseConfig = {
     const firebaseConfig = {
         apiKey: "AIzaSyDegjzhVr-EfJhcPYKRYds_P2Y8vROkfYE",
         authDomain: "impostor-game-d149f.firebaseapp.com",
@@ -104,3 +103,4 @@ window.nextGame = function() {
   update(ref(db, "games/" + gameCode + "/players/" + playerId), { ready: false, word: "" });
   show("lobby-screen");
 }
+
